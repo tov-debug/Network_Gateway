@@ -7,4 +7,6 @@ COPY . /app
 
 EXPOSE 8085
 
+ENV PYTHONUNBUFFERED=1
+
 CMD ["python", "main.py"]
