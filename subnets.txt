@@ -1,0 +1,5 @@
+# One destination network per line: IPv4_CIDR STATION
+# When networks overlap, the most-specific matching network should win.
+10.0.0.0/8 A
+10.1.0.0/16 C
+192.168.1.0/24 B

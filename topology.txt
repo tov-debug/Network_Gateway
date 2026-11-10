@@ -1,0 +1,9 @@
+# One bidirectional link per line: STATION_A STATION_B COST
+# COST is a positive routing weight.
+# Example network: GateWay can reach C through A or B; Dijkstra can choose
+# the lower-cost path for a destination hosted at C.
+GateWay A 2
+GateWay B 5
+A B 1
+A C 4
+B C 1
