@@ -1,50 +1,35 @@
-BLOCKED_SUBNETS = []
+from ip_utils import ip_to_int, parse_cidr, in_network
 
-#Collect the blocked subnets from a given file
-def load_blacklist(filepath):
+BLOCKED_SUBNETS = []  # (network, bits, text)
+
+
+# Gets the entries of the blacklist file 
+def build_blacklist(entries):
     global BLOCKED_SUBNETS
 
-    try:
-        with open(filepath, 'r') as f:
-            #go over every line and ignore empty ones
-            BLOCKED_SUBNETS = [line.strip() for line in f if line.strip()]
+    blocked = []
+    for where, parts in entries:
+        if len(parts) != 1:
+            raise ValueError(f"{where}: expected one subnet per line")
 
-        print(f"[SYSTEM] loaded {len(BLOCKED_SUBNETS)} subnets from {filepath}")
-    except Exception as e:
-        print(f"[ERROR] Failed to load blacklist: {e}")
+        text = parts[0]
+        if '/' not in text:
+            text += '/32'  # Default to a single IP mask
 
+        network, bits = parse_cidr(text)
+        blocked.append((network, bits, text))
 
-# Converts an IPv4 string (e.g., "192.168.1.1") to a 32-bit integer representation
-def ip_to_int(ip:str)->int:
-    parts = ip.split('.')#array of ip parts
+    BLOCKED_SUBNETS = blocked
+    print(f"[SYSTEM] loaded {len(BLOCKED_SUBNETS)} blocked subnets")
 
-    num1 = int(parts[0])
-    num2 = int(parts[1])
-    num3 = int(parts[2])
-    num4 = int(parts[3])
-
-    #moving each part to its place:
-    res = (num1 << 24) + (num2 << 16) + (num3 << 8) + num4
-    return res
 
 # Checks if a given client IP address falls within any blocked CIDR subnets
 def is_blocked(client_ip:str)-> bool:
     ip = ip_to_int(client_ip)
 
-    for subnet in BLOCKED_SUBNETS:
-        if '/' not in subnet:
-            subnet += '/32' # Default to a single IP mask
-            
-        network_ip_str, mask_bits_str = subnet.split('/')
-
-        network_ip = ip_to_int(network_ip_str)
-        mask_bits = int(mask_bits_str)
-
-        #bit mask for comparing ip address
-        mask = (0xFFFFFFFF << (32-mask_bits)) & 0xFFFFFFFF
-
-        if(ip & mask) == (network_ip & mask):
-            print(f"[WAF BLOCK] IP {ip} blocked by ALC rule {subnet}")
+    for network, bits, text in BLOCKED_SUBNETS:
+        if in_network(ip, network, bits):
+            print(f"[WAF BLOCK] IP {client_ip} blocked by ACL rule {text}")
             return True
+        
     return False
-
